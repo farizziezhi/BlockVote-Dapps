@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 
 // ABI untuk BlockVote contract - ganti dengan ABI yang sebenarnya
@@ -69,6 +69,20 @@ export default function App() {
   const [account, setAccount] = useState("");
   const [votes, setVotes] = useState({ candidateA: 0, candidateB: 0 });
   const [loading, setLoading] = useState(false);
+
+  // Auto-refresh hasil voting setiap 5 detik
+  useEffect(() => {
+    if (account) {
+      getVotes(); // Load pertama kali
+      const interval = setInterval(getVotes, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [account]);
+
+  // Hitung persentase untuk progress bar
+  const totalVotes = parseInt(votes.candidateA) + parseInt(votes.candidateB);
+  const percentageA = totalVotes > 0 ? (parseInt(votes.candidateA) / totalVotes) * 100 : 0;
+  const percentageB = totalVotes > 0 ? (parseInt(votes.candidateB) / totalVotes) * 100 : 0;
 
   // Koneksi ke Metamask
   const connectWallet = async () => {
@@ -194,17 +208,47 @@ export default function App() {
         {/* Hasil Voting */}
         <div className="bg-gray-50 p-6 rounded-lg shadow-inner mb-8">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Hasil Voting</h2>
+          
+          {/* Progress Bar */}
+          {totalVotes > 0 && (
+            <div className="mb-6">
+              <div className="flex bg-gray-200 rounded-full h-6 overflow-hidden">
+                <div 
+                  className="bg-blue-500 flex items-center justify-center text-white text-xs font-bold"
+                  style={{ width: `${percentageA}%` }}
+                >
+                  {percentageA > 15 && `${percentageA.toFixed(1)}%`}
+                </div>
+                <div 
+                  className="bg-red-500 flex items-center justify-center text-white text-xs font-bold"
+                  style={{ width: `${percentageB}%` }}
+                >
+                  {percentageB > 15 && `${percentageB.toFixed(1)}%`}
+                </div>
+              </div>
+              <p className="text-center text-sm text-gray-600 mt-2">
+                Total: {totalVotes} votes
+              </p>
+            </div>
+          )}
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-blue-100 p-4 rounded-lg">
               <h3 className="font-bold text-blue-700">Candidate A</h3>
               <p className="text-2xl font-bold text-blue-800">
                 {votes.candidateA} votes
               </p>
+              <p className="text-sm text-blue-600">
+                {percentageA.toFixed(1)}%
+              </p>
             </div>
             <div className="bg-red-100 p-4 rounded-lg">
               <h3 className="font-bold text-red-700">Candidate B</h3>
               <p className="text-2xl font-bold text-red-800">
                 {votes.candidateB} votes
+              </p>
+              <p className="text-sm text-red-600">
+                {percentageB.toFixed(1)}%
               </p>
             </div>
           </div>
@@ -246,6 +290,7 @@ export default function App() {
         <div className="mt-6 text-sm text-gray-500">
           <p>⚠️ Pastikan Anda sudah connect wallet sebelum voting</p>
           <p>💡 Setiap vote akan memerlukan konfirmasi transaksi</p>
+          <p>🔄 Hasil voting auto-refresh setiap 5 detik</p>
         </div>
       </div>
     </div>
